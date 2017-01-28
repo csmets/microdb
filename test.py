@@ -1,7 +1,9 @@
-import micro_db
+""" File for testing microdb """
 
-mydb = micro_db.opendb('MyDB')
-addTable = micro_db.createTable(mydb, 'users')
+import microdb
+
+mydb = microdb.opendb('MyDB')
+add_table = microdb.create_table(mydb, 'users')
 user1 = {
     "name": "Bob",
     "password": "12345"
@@ -12,10 +14,29 @@ user2 = {
     "password": "1234567"
 }
 
-addRecord = micro_db.insertToTable(addTable, 'users')
-addedRecord = addRecord(user1)
+user3 = {
+    "name": "Lisa",
+    "password": "1234567"
+}
 
-addRecord2 = micro_db.insertToTable(addedRecord, 'users')
-addedRecord2 = addRecord2(user2)
+added = microdb.query(
+    add_table,
+    'users',
+    microdb.insert_to_table,
+    user1,
+    user2,
+    user3
+)
 
-micro_db.closedb(addedRecord2, 'MyDB')
+update_column = microdb.query(
+    added,
+    'users',
+    'password',
+    dict({'key': 'name', 'value': 'Macy'}),
+    microdb.insert_to_column,
+    '5555'
+)
+
+print(update_column)
+
+# microdb.closedb(added, 'MyDB')
