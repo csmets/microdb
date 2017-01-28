@@ -1,28 +1,8 @@
-""" Mircodb is a mini data handler for python """
+""" Microdb is a mini data handler for python """
 import json
 import os
 
 path = './mdb/'
-
-'''
-Micro DB requirements
-
-1. load up a database file -DONE
-2. Create a table -DONE
-3. Insert a record -DONE
-5. Update a record
-6. Update a column -DONE
-7. Find a record using a column key and value and reference
-8. Delete a column
-9. Delete a record
-10. Check if table exists
-11. Check if column exists
-12. Fetch a table
-13. Fetch a column
-14. Write database
-15. Compose
-
-'''
 
 def write(filename, content):
     wpath = os.path.dirname(filename)
@@ -70,33 +50,68 @@ def fetch_table(db, table):
     else:
         raise ValueError('Table doesn\'t exist!')
 
-def fetch_column(db, table, column):
-    return db[table][column]
+def fetch_column(db, table, column, q):
+    if 'record_id' in q:
+        record = fetch_record(db, table, q)
+        return list(map(
+            lambda c: c[column],
+            record))
+    else:
+        print('record_id key is missing from query')
+
+def fetch_record(db, table, q):
+    if 'record_id' in q:
+        return list(filter(
+            lambda r: r[q['record_id']['key']] == q['record_id']['value'],
+            db[table]))
+    else:
+        print('record_id key is missing from query')
 
 def update_table(db, table, record):
     db[table].update(record)
     return db
 
-def insert_to_column(db, table, column, record_id, content):
+def insert_to_column(db, table, column, q):
     """ Insert into a column """
-    def map_func(record):
-        if record[record_id['key']] == record_id['value']:
-            record[column] = content
+    if 'record_id' in q:
+        def update_column(record):
+            if record[q['record_id']['key']] == q['record_id']['value']:
+                record[column] = q['value']
             return record
-        else:
+
+        db[table] = list(map(update_column, db[table]))
+
+        return db
+    else:
+        print('record_id key is missing from query')
+
+def insert_to_table(db, table, q):
+    """ insert record into table or update an existing record if given query """
+    if 'record_id' in q:
+        def update_record(record):
+            if record[q['record_id']['key']] == q['record_id']['value']:
+                for key in record:
+                    if key in q['value']:
+                        record[key] = q['value'][key]
             return record
 
-    db[table] = list(map(map_func, db[table]))
+        db[table] = list(map(update_record, db[table]))
+
+        return db
+    else:
+        db[table].append(q)
 
     return db
 
-def insert_to_table(db, table, content):
-    db[table].append(content)
-    return db
-
-def remove_table_record(db, table, row):
-    del db[table][row]
-    return db
+def remove_table_record(db, table, q):
+    if 'record_id' in q:
+        removed = list(filter(
+            lambda r: r[q['record_id']['key']] != q['record_id']['value'],
+            db[table]))
+        db[table] = removed
+        return db
+    else:
+        print('record_id key is missing from query')
 
 def query(*args):
     """ Execute a database query """
@@ -114,18 +129,17 @@ def query(*args):
 
         return table_loop(len(query_args), args[0])
 
-    # Table column (dict, string, dict, string, func, args*)
+    # Table column (dict, string, string, func, args*)
     if (isinstance(args[0], dict) and isinstance(args[1], str) and
-            isinstance(args[2], str) and isinstance(args[3], dict) and
-            callable(args[4])):
+            isinstance(args[2], str) and callable(args[3])):
 
-        query_args = args[5:]
+        query_args = args[4:]
         def column_loop(i, db):
             if i > 0:
                 i = i - 1
                 return column_loop(
                     i,
-                    args[4](args[0], args[1], args[2], args[3], query_args[i])
+                    args[3](args[0], args[1], args[2], query_args[i])
                 )
 
             return db

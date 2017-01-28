@@ -5,17 +5,20 @@ import microdb
 mydb = microdb.opendb('MyDB')
 add_table = microdb.create_table(mydb, 'users')
 user1 = {
-    "name": "Bob",
+    "fname": "Bob",
+    "lname": "Schmitty",
     "password": "12345"
 }
 
 user2 = {
-    "name": "Macy",
+    "fname": "Macy",
+    "lname": "Lu",
     "password": "1234567"
 }
 
 user3 = {
-    "name": "Lisa",
+    "fname": "Lisa",
+    "lname": "Mona",
     "password": "1234567"
 }
 
@@ -32,11 +35,34 @@ update_column = microdb.query(
     added,
     'users',
     'password',
-    dict({'key': 'name', 'value': 'Macy'}),
     microdb.insert_to_column,
-    '5555'
+    {'record_id': {'key': 'fname', 'value': 'Macy'}, 'value': 'poo'}
 )
 
-print(update_column)
+update_record = microdb.query(
+    update_column,
+    'users',
+    microdb.insert_to_table,
+    {'record_id': {'key': 'fname', 'value': 'Lisa'}, 'value': {'lname': 'Rabbit', 'fname': 'Peter'}}
+)
 
-# microdb.closedb(added, 'MyDB')
+find_macy = microdb.fetch_record(
+    update_record,
+    'users',
+    {'record_id': {'key': 'fname', 'value': 'Macy'}}
+)
+
+delete_macy = microdb.remove_table_record(
+    update_record,
+    'users',
+    {'record_id': {'key': 'lname', 'value': 'Lu'}}
+)
+
+dump_table = microdb.fetch_column(
+    delete_macy,
+    'users',
+    'fname',
+    {'record_id': {'key': 'lname', 'value': 'Rabbit'}}
+)
+
+microdb.closedb(added, 'MyDB')
