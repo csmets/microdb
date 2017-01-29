@@ -4,14 +4,6 @@ import os
 
 path = './mdb/'
 
-def write(filename, content):
-    wpath = os.path.dirname(filename)
-    if not os.path.exists(wpath):
-        os.makedirs(wpath)
-    f = open(filename, 'w')
-    f.write(content)
-    f.close()
-
 # Load up the database
 def opendb(name):
     dbfile = path + name + '.json'
@@ -30,15 +22,15 @@ def closedb(db, name):
 def table_exist(db, table):
     return bool(table in db)
 
+def column_exist(table, column):
+    return bool(column in table)
+
 def create_table(db, name):
     if not table_exist(db, name):
         db[name] = []
     else:
         raise ValueError('Table already exists!')
     return db
-
-def column_exist(table, column):
-    return bool(column in table)
 
 def create_column(db, table, column):
     db[table][column] = {}
@@ -51,21 +43,21 @@ def fetch_table(db, table):
         raise ValueError('Table doesn\'t exist!')
 
 def fetch_column(db, table, column, q):
-    if 'record_id' in q:
+    if has_required_in_query(q):
         record = fetch_record(db, table, q)
         return list(map(
             lambda c: c[column],
             record))
     else:
-        print('record_id key is missing from query')
+        return False
 
 def fetch_record(db, table, q):
-    if 'record_id' in q:
+    if has_required_in_query(q):
         return list(filter(
             lambda r: r[q['record_id']['key']] == q['record_id']['value'],
             db[table]))
     else:
-        print('record_id key is missing from query')
+        return False
 
 def update_table(db, table, record):
     db[table].update(record)
@@ -73,7 +65,7 @@ def update_table(db, table, record):
 
 def insert_to_column(db, table, column, q):
     """ Insert into a column """
-    if 'record_id' in q:
+    if has_required_in_query(q):
         def update_column(record):
             if record[q['record_id']['key']] == q['record_id']['value']:
                 record[column] = q['value']
@@ -83,7 +75,7 @@ def insert_to_column(db, table, column, q):
 
         return db
     else:
-        print('record_id key is missing from query')
+        return False
 
 def insert_to_table(db, table, q):
     """ insert record into table or update an existing record if given query """
@@ -104,14 +96,14 @@ def insert_to_table(db, table, q):
     return db
 
 def remove_table_record(db, table, q):
-    if 'record_id' in q:
+    if has_required_in_query(q):
         removed = list(filter(
             lambda r: r[q['record_id']['key']] != q['record_id']['value'],
             db[table]))
         db[table] = removed
         return db
     else:
-        print('record_id key is missing from query')
+        return False
 
 def query(*args):
     """ Execute a database query """
@@ -147,3 +139,25 @@ def query(*args):
         return column_loop(len(query_args), args[0])
 
     return False
+
+def write(filename, content):
+    wpath = os.path.dirname(filename)
+    if not os.path.exists(wpath):
+        os.makedirs(wpath)
+    f = open(filename, 'w')
+    f.write(content)
+    f.close()
+
+def has_required_in_query(q):
+    if 'record_id' in q:
+        if 'key' in q['record_id']:
+            if 'value' in q['record_id']:
+                return True
+            else:
+                print('`value` key is missing from `record_id`')
+                return False
+        else:
+            print('`key` key is missing from `record_id`')
+            return False
+    else:
+        print('`record_id` key is missing from query')
